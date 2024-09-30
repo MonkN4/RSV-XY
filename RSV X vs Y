@@ -1,0 +1,50 @@
+//@version=5
+indicator(" Monk - RSV Symbol X vs Symbol Y ", overlay=false)
+
+// User Inputs for Custom Symbols
+symbol_x = input.string("SPY", title="Symbol X")
+symbol_y = input.string("DXY", title="Symbol Y")
+
+// Request security data for both symbols
+price_x = request.security(symbol_x, "1D", close)
+price_y = request.security(symbol_y, "1D", close)
+
+// Percentage Change Length
+n = input.int(defval=10, title="Length")
+
+// Percentage Change Calculations for Symbol X and Symbol Y
+pct_change_x = (price_x - price_x[n]) / price_x[n] * 100
+pct_change_y = (price_y - price_y[n]) / price_y[n] * 100
+
+// Spread Calculation: Symbol X vs Symbol Y
+Spread_XY = pct_change_x - pct_change_y
+
+// Lookback for Highest and Lowest Values
+Lookback = input.int(defval=100, title="Lookback")
+
+// Highest and Lowest Values for the Spread between Symbol X and Symbol Y
+HighestSpread_XY = ta.highest(Spread_XY, Lookback)
+LowestSpread_XY = ta.lowest(Spread_XY, Lookback)
+
+// Calculate RSV (0 to 100) for Spread between Symbol X and Symbol Y
+RSV_XY = ((Spread_XY - LowestSpread_XY) / (HighestSpread_XY - LowestSpread_XY)) * 100
+
+// Standardize RSV to -100 to +100 (mean = 0)
+RSV_XY_std = (RSV_XY - 50) / 50 * 100
+
+// Midline and levels
+Midline = hline(0, editable=true, linewidth=1, color=color.gray, title="Mid-line")
+overvalued_level = input.float(75, title="Overvalued Level")
+undervalued_level = input.float(-75, title="Undervalued Level")
+Overvalued = hline(75, "Overvalued", color=color.gray, linewidth=1)
+Undervalued = hline(-75, "Undervalued", color=color.gray, linewidth=1)
+
+// Plot the standardized RSV for Symbol X vs Symbol Y
+plot_RSV_XY = plot(RSV_XY_std, title="RSV of Symbol X vs Symbol Y", color=color.blue, linewidth=2)
+
+// Midline plot for filling
+midLinePlot = plot(0, color=na, editable=false, display=display.none)
+
+// Fill areas for undervalued and overvalued
+fill(plot_RSV_XY, midLinePlot, undervalued_level, -100, top_color=color.new(color.green, 100), bottom_color=color.new(color.green, 0), title="Undervalued Fill")
+fill(plot_RSV_XY, midLinePlot, 100, overvalued_level, top_color=color.new(color.red, 0), bottom_color=color.new(color.red, 100), title="Overvalued Fill")
